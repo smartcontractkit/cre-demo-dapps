@@ -2,6 +2,14 @@
 
 This repository demonstrates the integration of Chainlink Runtime Environment (CRE) with LogTrigger and HTTP abilities to enable seamless off-chain data orchestration for tokenized assets. The project tokenizes various real-world assets (RWAs) using Ethereum Solidity smart contracts and leverages Chainlink CRE, AWS DynamoDB, and Lambda functions to track the full lifecycle of these tokenized assets.
 
+## Content
+- [Project Overview](#project-overview)
+  - [Tokenization and Lifecycle Management](#tokenization-and-lifecycle-management)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Usage Steps](#usage-steps)
+- [Troubleshooting](#troubleshooting)
+
 ## Project Overview
 ### Tokenization and Lifecycle Management
 The core of this project is an Ethereum-based Solidity smart contract that facilitates the tokenization of diverse asset classes, including invoices, Treasury bills (T-bills), loans, and carbon credits. Users interact with the contract via specialized functions to manage asset operations, such as:
