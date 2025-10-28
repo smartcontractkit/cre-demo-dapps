@@ -162,44 +162,6 @@ const onLogTrigger = (runtime: Runtime<Config>, log: EVMLog): string => {
       return "No key event detected"
   }
 
-  // if (decodedLog.eventName === "AssetRegistered") {
-  //   const { assetId, issuer, initialSupply, name } = decodedLog.args
-  //   assetParams = {
-  //     action: "AssetRegistered",
-  //     assetId: assetId.toString(),
-  //     issuer,
-  //     initialSupply: initialSupply.toString(),
-  //     assetName: name,
-  //   };    
-  //   runtime.log(`Event AssetRegistered detected: assetId ${assetId} | issuer ${issuer} initialSupply ${initialSupply} | name ${name}`)
-  // } else if(decodedLog.eventName === "AssetVerified") {
-  //   const { assetId, isValid } = decodedLog.args
-  //   assetParams = {
-  //     action: "AssetVerified",
-  //     assetId: assetId.toString(),
-  //     isValid
-  //   }
-  //   runtime.log(`Event AssetVerified detected: assetId ${assetId} | isValid ${isValid}`)
-  // } else if(decodedLog.eventName == "TokensMinted") {
-  //   const { assetId, amount } = decodedLog.args
-  //   assetParams = {
-  //     action: "TokensMinted",
-  //     assetId: assetId.toString(),
-  //     amount: amount.toString()
-  //   }
-  //   runtime.log(`Event TokensMinted detected: assetId ${assetId} | amount ${amount}`)
-  // } else if(decodedLog.eventName == "TokensRedeemed") {
-  //   const {assetId, amount } = decodedLog.args
-  //   assetParams = {
-  //     action: "TokensRedeemed",
-  //     assetId: assetId.toString(),
-  //     amount: amount.toString()
-  //   }
-  //   runtime.log(`Event TokensRedeemed detected: assetId ${assetId} | amount ${amount}`)
-  // } else {
-  //   return "No key event detected"
-  // }
-
   const result = httpClient.sendRequest(
     runtime,
     postData,

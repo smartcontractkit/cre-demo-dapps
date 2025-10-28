@@ -187,14 +187,14 @@ contract TokenizedAssetPlatform is ERC1155, AccessControl, Pausable, ERC1155Burn
     }
 
         /**
-     * @dev 重写 burn 以防止绕过 redeem（强制使用 redeem 进行结算）。
+     * @dev override burn to avoid assets burned without calling redeem
      */
     function burn(address /*account*/, uint256 /*id*/, uint256 /*value*/) public virtual override {
         revert("Use redeem function for settlement and totalSupply tracking");
     }
 
     /**
-     * @dev 重写 burnBatch 以防止绕过 redeem。
+     * @dev override burnBatch to avoid assets burned without calling redeem
      */
     function burnBatch(address /*account*/, uint256[] memory /*ids*/, uint256[] memory /*values*/) public virtual override {
         revert("Use redeem function for settlement and totalSupply tracking");
