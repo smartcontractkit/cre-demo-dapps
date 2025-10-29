@@ -25,7 +25,7 @@ This project addresses these challenges by employing Chainlink CRE to bridge on-
 
 - Chainlink CRE's LogTrigger captures events emitted by the tokenization platform contract.
 - Extracted event data is parsed, normalized, and encapsulated into a structured HTTP payload.
-- The HTTP Ability dispatches this payload as a RESTful API request to an AWS Lambda function.
+- The HTTP Capability dispatches this payload as a RESTful POST request to an AWS Lambda function.
 - The Lambda function persists the processed data into an AWS DynamoDB NoSQL database, enabling efficient querying via secondary indexes and flexible schemas.
 
 All critical orchestration logic—including LogTrigger configuration, HTTP request formatting, and error handling—is encapsulated within Chainlink CRE workflows, ensuring modular, reusable, and scalable deployment.
@@ -33,6 +33,20 @@ All critical orchestration logic—including LogTrigger configuration, HTTP requ
 This architecture decouples on-chain immutability from off-chain accessibility, providing stakeholders with near-real-time visibility into asset lifecycles without compromising blockchain integrity.
 
 ## Getting Started
+
+### Cloning this branch
+You can clone just this branch with 
+`git clone --branch tokenization-platform org-25111032@github.com:smartcontractkit/cre-demo-dapps.git`
+or
+clone the entire repo with 
+`$git clone org-25111032@github.com:smartcontractkit/cre-demo-dapps.git`
+and then
+```
+$git fetch -a
+
+$git switch tokenization-platform
+```
+
 ### Prerequisites
 Before proceeding, ensure the following are set up:
 - Chainlink CRE installed and configured.
@@ -45,7 +59,7 @@ Before proceeding, ensure the following are set up:
 Follow these steps to deploy and interact with the project:
 1. Update Configuration Files
     
-    Rename project.ya
+    Rename `project.yaml`
     
     Add your ethereum RPC url to `project.yaml` under the root directory. If you don't have a RPC url, use the following one. The `project.yaml` should be look like this:
     ```
@@ -57,7 +71,7 @@ Follow these steps to deploy and interact with the project:
 
 2. Deploy Smart Contracts and add addr to config
 
-    The contract source code can be found in [TokenizedAssetPlatform.sol](contracts/abi/TokenizedAssetPlatform.ts). Use Remix to deploy the smart contract to the Ethereum Sepolia testnet. 
+    The contract source code can be found in [TokenizedAssetPlatform.sol](./contracts/TokenizedAssetPlatform.sol). Use Remix to deploy the smart contract to the Ethereum Sepolia testnet. 
     
     Rename `config.json.example` to `config.json`. Update `assetAddress` in file [config.json](asset-log-trigger-workflow/config.json). The updated config file should have the evms config as below:
     ```
