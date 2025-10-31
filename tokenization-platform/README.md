@@ -36,16 +36,17 @@ This architecture decouples on-chain immutability from off-chain accessibility, 
 ### Prerequisites
 Before proceeding, ensure the following are set up:
 - Chainlink Runtime Evironment(CRE) installed and configured. Please find how to install and configure CRE in the [official doc](https://documentation-preview-git-cre-priv-1824b6-chainlink-labs-devrel.vercel.app/cre/getting-started/cli-installation). 
-- Node.js (v18+ recommended) for script execution.
+- [Node.js](https://nodejs.org/en) (v18+ recommended) for script execution.
 - Ethereum Sepolia testnet access (e.g., via Alchemy or Infura RPC endpoint).
 - Sepolia test tokens (ETH and any required ERC-20/ERC-1155 tokens) for gas and interactions.
-- AWS account (Free Tier eligible) with IAM roles for DynamoDB and Lambda. <b>Steps are below</b>.
+- [AWS](https://aws.amazon.com/console/) account (Free Tier eligible) with IAM roles for DynamoDB and Lambda. <b>Steps are below</b>.
 
 ### Usage Steps
 Follow these steps to deploy and interact with the project:
 1. git clone the repo
     ```
-    git clone -b cre-aws-tokenization-platform https://github.com/smartcontractkit/cre-demo-dapps.git
+    git clone https://github.com/smartcontractkit/cre-demo-dapps.git
+    cd cre-demo-dapps/tokenization-platform
     ```
 
 2. Update Configuration Files
@@ -110,7 +111,15 @@ Follow these steps to deploy and interact with the project:
     When the code is deployed, go to "Configuration" -> "Function URL" and click the button "Create function URL" to create a URL for the function. Choose "NONE" for the the Function URL's Auth type and click the button "save" on the down right. The page is like below:
     ![alt text](<images/create-function-url.png>)
 
-    Grant the DynamoDB full permission to the lambda function so that the function can read and update data in DynamoDB table. Search "IAM" in search bar and click "Role" on the left panel, and find and click the role for your lambda function(usually the name of the role starts with your lambda function name).
+    Add the lambda Function URL it to file `asset-log-trigger-workflow/config.json`. Function URL can be found under Configuration of AWS lambda function.
+    ![alt text](<images/function-url.png>)
+
+    Add function URL to "url" in the file:
+    ```
+    "url": "<YOUR LAMBDA FUNCTION URL>",
+    ```
+
+    Grant the lambda function full permission to DynamoDB so that the function can read and update data in DynamoDB table. Search "IAM" in search bar and click "Role" on the left panel, and find and click the role for your lambda function(usually the name of the role starts with your lambda function name).
     ![alt text](<images/function-role.png>)
 
     Add permission to the role. Click the "Add permissions"->"Attach policies". In the policy page, select permission policy "AmazonDynamoDBFullAccess" and click "Add Permission" to add the policy to the role.
@@ -119,20 +128,27 @@ Follow these steps to deploy and interact with the project:
     You will find the "AmazonDynamoDBFullAccess" under the role if it is added successfully. 
     ![alt text](<images/role-policies.png>)
 
-    Finally, find the Function URL and add it to file `asset-log-trigger-workflow/config.json`. Function URL can be found under Configuration of AWS lambda functoin.
-    ![alt text](<images/function-url.png>)
-
-    Add function URL to "url" in the file:
-    ```
-    "url": "<YOUR LAMBDA FUNCTION URL>",
-    ```
-
 6. Install node dependencies
     
     Install node deps for the workflow with commands below:
     ```shell
     cd asset-log-trigger-workflow
     bun install
+    ```
+
+    You will see the if succeed. 
+    ```
+    $ bunx cre-setup
+    [cre-sdk-javy-plugin] Detected platform: darwin, arch: arm64
+    [cre-sdk-javy-plugin] Using cached binary: /Users/qingyangkong/.cache/javy/v5.0.4/darwin-arm64/javy
+    ✅ CRE TS SDK is ready to use.
+
+    + @types/bun@1.2.21
+    + @chainlink/cre-sdk@0.0.8-alpha
+    + viem@2.34.0
+    + zod@3.25.76
+
+    30 packages installed [3.06s]
     ```
 
 7. Rename the `.env.example` to `.env`
@@ -161,6 +177,8 @@ Follow these steps to deploy and interact with the project:
     cre workflow simulate asset-log-trigger-workflow --broadcast --target local-simulation
     ```
 
+    **NOTE CRE workflow simulate performs a dry run for onchain write operations. It will simulate the transaction and return a successful response, but will not broadcast it to the network, resulting in an empty transaction hash (0x). To execute a real transaction, `--broadcast` flag has to be in the command.**
+
     Because there 2 triggers: logTrigger and httpTrigger within this CRE workflow, you need to select the correct one by input 1. You will see below in your terminal:
     ```
     🚀 Workflow simulation ready. Please select a trigger:
@@ -170,13 +188,15 @@ Follow these steps to deploy and interact with the project:
     Enter your choice (1-2): 1
     ```
     
-    Enter hash of the deployment transaction hash and 1 for  index in the terminal. You can find the tx hash in latest transaction on your wallet extension or under the transactions in [sepolia ether scan](https://sepolia.etherscan.io/). Example is like below:
+    Enter hash of the deployment transaction hash and 1 for index in the terminal. You can find the tx hash in latest transaction on your wallet extension or under the transactions in [sepolia ether scan](https://sepolia.etherscan.io/). There are 2 events in the transaction(`RoleGranted` and `AssetRegistered`) and index number 1 means we use the second event(`AssetRegistered`) in the transaction to trigger CRE. Example is like below:
     ```shell
     Enter transaction hash (0x...): 0x495df84e1d1d2dc382671dd96c4ce5f407f726f5a63bff3cd81c47969508f042
     Enter event index (0-based): 1
     ```
 
-    In the DynamoDB dashboard, click "Explore items" and you will see a new record put in table "AssetState". AssetId is added to the record as partition key. AssetName, Issuer and Supply are value extracted from event log. Uid is generated automaticaly in the Lambda function.  
+    By run this command, we actually trigger CRE with an event log in the transaction. In the case, it is simulated that CRE is monitoring a specific event log and then send a request to AWS lambda function. lambda function published before will make a new put in the DynamoDB.
+
+    In the DynamoDB dashboard, click "Explore items" and you will see a new record in table "AssetState". AssetId is added to the record as partition key. AssetName, Issuer and Supply are value extracted from event log. Uid is generated automaticaly in the Lambda function.  
     ![alt text](<images/asset-registration.png>)
 
 9. Verify an Asset
@@ -184,6 +204,7 @@ Follow these steps to deploy and interact with the project:
     On remix, call the function `verifyAsset` of deployed TokenizedAssetPlatform contract with params: 
     - assetId: 1
     - isValid: 1
+    - verificationDetails: ""
 
     run command below to trigger the CRE with event log.
     ```shell
