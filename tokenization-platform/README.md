@@ -35,7 +35,7 @@ This architecture decouples on-chain immutability from off-chain accessibility, 
 ## Getting Started
 ### Prerequisites
 Before proceeding, ensure the following are set up:
-- Chainlink Runtime Evironment(CRE) installed and configured. Please find how to install and configure CRE in the [official doc](https://documentation-preview-git-cre-priv-1824b6-chainlink-labs-devrel.vercel.app/cre/getting-started/cli-installation). 
+- Chainlink Runtime Evironment(CRE) [installed and configured.](https://github.com/smartcontractkit/cre-cli). 
 - [Node.js](https://nodejs.org/en) (v18+ recommended) for script execution.
 - Ethereum Sepolia testnet access (e.g., via Alchemy or Infura RPC endpoint).
 - Sepolia test tokens (ETH and any required ERC-20/ERC-1155 tokens) for gas and interactions.
@@ -61,9 +61,17 @@ Follow these steps to deploy and interact with the project:
 
 3. Deploy Smart Contracts and add addr to config
 
-    The contract source code can be found in [TokenizedAssetPlatform.sol](contracts/TokenizedAssetPlatform.sol). Use Remix to deploy the smart contract to the **Ethereum Sepolia testnet**. 
+    The contract source code can be found in [TokenizedAssetPlatform.sol](contracts/TokenizedAssetPlatform.sol). Use Remix to deploy the smart contract to the **Ethereum Sepolia testnet**. Ensure that you are deploying the `TokenizedAssetPlatform` contract.
     
-    Rename `asset-log-trigger-workflow/config.json.example` to `asset-log-trigger-workflow/config.json`. Update `assetAddress` in file [config.json](asset-log-trigger-workflow/config.json). The updated config file should have the evms config as below:
+    Execute the following commands to create a `config.json` file from the provided example.
+
+    ```
+    cd asset-log-trigger-workflow
+    cp config.json.example config.json
+    ```
+
+    Update `assetAddress` in the [config.json](asset-log-trigger-workflow/config.json) file with the new contract address. The updated config file should have the evms config as below:
+
     ```
     "evms": [
         {
@@ -96,7 +104,7 @@ Follow these steps to deploy and interact with the project:
     Search lambda function in AWS dashboard search bar and go to lambda dashboard. 
     ![alt text](<images/search-lambda.png>)
 
-    Create a new function by clicking "create function" on the rop right. Set with nodejs.22(this is also the default one) as environment as below. 
+    Create a new function by clicking "create function" on the rop right. For this demo, set the function name to `Asset-lambda-function`. Set with nodejs.22 (this is also the default one) as environment as below. 
     ![alt text](<images/create-lambda-function.png>)
 
     Click button "Create function" on the down right to init this lambda function. You will be at lambda dashboard when it is initiated successfully, and copy the file [index.mjs](lambda-function/index.mjs) and paste it in index.mjs under tab "Code". 
@@ -130,13 +138,14 @@ Follow these steps to deploy and interact with the project:
 
 6. Install node dependencies
     
-    Install node deps for the workflow with commands below:
+   From the `asset-log-trigger-workflow` directory, install node deps for the workflow with command below:
     ```shell
-    cd asset-log-trigger-workflow
+
     bun install
     ```
 
-    You will see the if succeed. 
+    You will see the following if the process succeeds.
+
     ```
     $ bunx cre-setup
     [cre-sdk-javy-plugin] Detected platform: darwin, arch: arm64
@@ -151,9 +160,17 @@ Follow these steps to deploy and interact with the project:
     30 packages installed [3.06s]
     ```
 
-7. Rename the `.env.example` to `.env`
+7. Create a `.env` file from the example
+
+    Create a new `.env` file from the provided example.
+
+    ```
+    cd ..
+    cp .env.example .env
+    ```
     
     This file is used to save the environment variables used in the workflow. Add your private key(without 0x prefixed) to the .env file like below:
+    
     ```
     CRE_ETH_PRIVATE_KEY=<YOUR PRIVATE KEY>
     # Profile to use for this environment (e.g. local-simulation, production, staging)
