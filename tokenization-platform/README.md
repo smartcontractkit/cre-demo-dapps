@@ -79,8 +79,10 @@ sequenceDiagram
 ## Getting Started
 ### Prerequisites
 Before proceeding, ensure the following are set up:
-- Chainlink Runtime Evironment(CRE) [installed and configured.](https://github.com/smartcontractkit/cre-cli). 
+- [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+- Chainlink Runtime Environment (CRE) [installed and configured.](https://github.com/smartcontractkit/cre-cli) 
 - [Node.js](https://nodejs.org/en) (v18+ recommended) for script execution.
+- [Bun JS package manager](https://bun.com/)
 - Ethereum Sepolia testnet access (e.g., via Alchemy or Infura RPC endpoint).
 - Sepolia test tokens (ETH and any required ERC-20/ERC-1155 tokens) for gas and interactions.
 - [AWS](https://aws.amazon.com/console/) account (Free Tier eligible) with IAM roles for DynamoDB and Lambda. <b>Steps are below</b>.
@@ -95,7 +97,7 @@ Follow these steps to deploy and interact with the project:
 
 2. Update Configuration Files
     
-    You can update the Ethereum Sepolia RPC url to with yours or directly use the default one in the `project.yaml`. The `project.yaml` should be look like this:
+    You can update the Ethereum Sepolia RPC url with yours or directly use the default one in the `project.yaml`. The `project.yaml` should look like this:
     ```
     local-simulation:
     rpcs:
@@ -128,7 +130,7 @@ Follow these steps to deploy and interact with the project:
 
 4. Create DynamoDB Table
 
-    Go to the [AWS Management Console](https://aws.amazon.com/console/) and click "Sign in to console" to log in the AWS Management Console. 
+    Go to the [AWS Management Console](https://aws.amazon.com/console/) and click "Sign in to console" to log into the AWS Management Console. 
     
     ![alt text](<images/aws-console.png>)
     
@@ -136,7 +138,7 @@ Follow these steps to deploy and interact with the project:
     ![alt text](<images/aws-login.png>)
     
     
-    Search dynamoDB on search bar. 
+    Search for DynamoDB in the search bar. 
     ![alt text](<images/search-dynamo-db.png>)
 
     Create table named `AssetState` with a partition key: AssetId(string). Leave other settings as default and click the orange button "create" on the down right. Page to create DynamoDB table is as below:
@@ -148,7 +150,7 @@ Follow these steps to deploy and interact with the project:
     Search lambda function in AWS dashboard search bar and go to lambda dashboard. 
     ![alt text](<images/search-lambda.png>)
 
-    Create a new function by clicking "create function" on the rop right. For this demo, set the function name to `Asset-lambda-function`. Set with nodejs.22 (this is also the default one) as environment as below. 
+    Create a new function by clicking "create function" on the top right. For this demo, set the function name to `Asset-lambda-function`. Set the runtime to nodejs.22 (this is also the default) as below. 
     ![alt text](<images/create-lambda-function.png>)
 
     Click button "Create function" on the down right to init this lambda function. You will be at lambda dashboard when it is initiated successfully, and copy the file [index.mjs](lambda-function/index.mjs) and paste it in index.mjs under tab "Code". 
@@ -213,7 +215,7 @@ Follow these steps to deploy and interact with the project:
     cp .env.example .env
     ```
     
-    This file is used to save the environment variables used in the workflow. Add your private key(without 0x prefixed) to the .env file like below:
+    This file is used to save the environment variables used in the workflow. Add your private key (without the 0x prefix) to the .env file like below:
     
     ```
     CRE_ETH_PRIVATE_KEY=<YOUR PRIVATE KEY>
@@ -240,7 +242,7 @@ Follow these steps to deploy and interact with the project:
 
     **NOTE CRE workflow simulate performs a dry run for onchain write operations. It will simulate the transaction and return a successful response, but will not broadcast it to the network, resulting in an empty transaction hash (0x). To execute a real transaction, `--broadcast` flag has to be in the command.**
 
-    Because there 2 triggers: logTrigger and httpTrigger within this CRE workflow, you need to select the correct one by input 1. You will see below in your terminal:
+    Because there are 2 triggers: logTrigger and httpTrigger within this CRE workflow, you need to select the correct one by input 1. You will see below in your terminal:
     ```
     🚀 Workflow simulation ready. Please select a trigger:
     1. evm:ChainSelector:16015286601757825753@1.0.0 LogTrigger
@@ -249,15 +251,15 @@ Follow these steps to deploy and interact with the project:
     Enter your choice (1-2): 1
     ```
     
-    Enter hash of the deployment transaction hash and 1 for index in the terminal. You can find the tx hash in latest transaction on your wallet extension or under the transactions in [sepolia ether scan](https://sepolia.etherscan.io/). There are 2 events in the transaction(`RoleGranted` and `AssetRegistered`) and index number 1 means we use the second event(`AssetRegistered`) in the transaction to trigger CRE. Example is like below:
+    Enter the deployment transaction hash and 1 for index in the terminal. You can find the tx hash in latest transaction on your wallet extension or under the transactions in [sepolia ether scan](https://sepolia.etherscan.io/). There are 2 events in the transaction(`RoleGranted` and `AssetRegistered`) and index number 1 means we use the second event(`AssetRegistered`) in the transaction to trigger CRE. Example is like below:
     ```shell
     Enter transaction hash (0x...): 0x495df84e1d1d2dc382671dd96c4ce5f407f726f5a63bff3cd81c47969508f042
     Enter event index (0-based): 1
     ```
 
-    By run this command, we actually trigger CRE with an event log in the transaction. In the case, it is simulated that CRE is monitoring a specific event log and then send a request to AWS lambda function. lambda function published before will make a new put in the DynamoDB.
+    By running this command, we actually trigger CRE with an event log in the transaction. In this case, it is simulated that CRE is monitoring a specific event log and then send a request to AWS lambda function. lambda function published before will make a new put in the DynamoDB.
 
-    In the DynamoDB dashboard, click "Explore items" and you will see a new record in table "AssetState". AssetId is added to the record as partition key. AssetName, Issuer and Supply are value extracted from event log. Uid is generated automaticaly in the Lambda function.  
+    In the DynamoDB dashboard, click "Explore items" and you will see a new record in table "AssetState". AssetId is added to the record as partition key. AssetName, Issuer and Supply are values extracted from event log. Uid is generated automatically in the Lambda function.  
     ![alt text](<images/asset-registration.png>)
 
 9. Verify an Asset
@@ -292,9 +294,9 @@ Follow these steps to deploy and interact with the project:
 
 10. Update Asset Uid on smart contract through httpTrigger
 
-    In the step, we are using httpTrigger to update the uid of an registered asset. The uid is auto-generated by lambda function when an asset is added into DynamoDB. 
+    In this step, we are using httpTrigger to update the uid of a registered asset. The uid is auto-generated by lambda function when an asset is added into DynamoDB. 
 
-    It is possible to fetch the data fom dynamoDB with a specific assetId and then send the a RESTful request to CRE. CRE can decode the request and write the asset's uid to smart contract. 
+    It is possible to fetch the data from DynamoDB with a specific assetId and then send a RESTful request to CRE. CRE can decode the request and write the asset's uid to smart contract. 
 
     run command below to trigger the CRE with event log.
     ```shell
@@ -310,9 +312,9 @@ Follow these steps to deploy and interact with the project:
     Enter your choice (1-2): 2
     ```
 
-    In real use case, the request is sent from a offchain service like lambda function. If the action in POST request to lambda function is defined as "sendNotification", a new POST request can be composed and sent to CRE. You can read the scripts of "sendNotification" in [index.mjs](./lambda-function/index.mjs).
+    In a real use case, the request is sent from an off-chain service like lambda function. If the action in POST request to lambda function is defined as "sendNotification", a new POST request can be composed and sent to CRE. You can read the scripts of "sendNotification" in [index.mjs](./lambda-function/index.mjs).
 
-    But in the demo, we are using simulation mode, and the CRE is running in local machine instead of being deployed on Chainlink service. There is not a apiUrl to receive the request, so we simulate the http request by sending CRE a [json payload](./asset-log-trigger-workflow/http_trigger_payload.json). You need to promise your evm account has sepolia ETH for gas fee. 
+    But in the demo, we are using simulation mode, and the CRE is running in local machine instead of being deployed on Chainlink service. There is not an apiUrl to receive the request, so we simulate the http request by sending CRE a [json payload](./asset-log-trigger-workflow/http_trigger_payload.json). You need to ensure your EVM account has Sepolia ETH for gas fee. 
     ```
     Enter your input: { "assetId": 1, "uid": "bca71bc9-d08e-48ef-8ad1-acefe95505a9" }
     ```
@@ -334,7 +336,7 @@ Follow these steps to deploy and interact with the project:
     node asset-log-trigger-workflow/readUid.js
     ```
 
-    You will see the result as below. the value is the same as uid in json payload. This is updated on tokenization contract.
+    You will see the result as below. The value is the same as the uid in the JSON payload. This was updated on tokenization contract.
     ```
     value of the assetId 1 uid: bca71bc9-d08e-48ef-8ad1-acefe95505a9
     ```
@@ -367,7 +369,7 @@ Follow these steps to deploy and interact with the project:
     Enter event index (0-based): 1
     ```
 
-    In the DynamoDB, you will see column TokenMinted added and the value of the the column is the same as value in event log. 
+    In the DynamoDB, you will see column TokenMinted added and the value of the column is the same as value in event log. 
     ![alt text](<images/token-minted.png>)
 
 12. Redeem Tokens
@@ -413,5 +415,5 @@ Follow these steps to deploy and interact with the project:
 
 - Solidity Compilation Errors (Override Mismatch or Inheritance Issues)
 
-    These often stem from version incompatibilities in OpenZeppelin contracts. Use OpenZeppelin v5.x for ERC-1155 implementations explicitly if remix use other version of OZ contracts.
+    These often stem from version incompatibilities in OpenZeppelin contracts. Use OpenZeppelin v5.x for ERC-1155 implementations explicitly if Remix uses other versions of OZ contracts.
 

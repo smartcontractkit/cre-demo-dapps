@@ -2,7 +2,7 @@
 
 This repo contains several demos that guide you on using the [Chainlink Runtime Environment (CRE)](https://chain.link/chainlink-runtime-environment).
 
-Each branch contains a different demo and usecase.
+Each branch contains a different demo and use case.
 
 We encourage you to check the README in each of those branches.
 
