@@ -2,13 +2,13 @@
 
 This repo contains several demos that guide you on using the [Chainlink Runtime Environment (CRE)](https://chain.link/chainlink-runtime-environment).
 
-We encourage you to check the README in each demo.
+We encourage you to check the README in each of the directories to understand the demo.
 
-Demo links:
+Here are the current demos:
 
-1. [tokenization platform](./tokenization-platform/README.md)
+1. [tokenization platform](./asset-log-trigger-workflow/)
 
-2. [cross chain stablecoin transfers](https://github.com/smartcontractkit/cre-demo-dapps/tree/bank-stablecoin)
+2. [cross chain stablecoin transfers](./stablecoin-ace-ccip/)
 
 # License
 
