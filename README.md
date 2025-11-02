@@ -6,9 +6,9 @@ We encourage you to check the README in each of the directories to understand th
 
 Here are the current demos:
 
-1. [tokenization platform](./asset-log-trigger-workflow/)
+1. [Tokenization Platform](./tokenization-platform/)
 
-2. [cross chain stablecoin transfers](./stablecoin-ace-ccip/)
+2. [CRE Stablecoin with PoR, ACE, and CCIP](./stablecoin-ace-ccip/)
 
 # License
 
