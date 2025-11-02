@@ -5,6 +5,7 @@ This repository demonstrates the integration of Chainlink Runtime Environment (C
 ## Content
 - [Project Overview](#project-overview)
   - [Tokenization and Lifecycle Management](#tokenization-and-lifecycle-management)
+- [Flow Diagram](#flow-diagram)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Usage Steps](#usage-steps)
@@ -32,6 +33,49 @@ All critical orchestration logic—including LogTrigger configuration, HTTP requ
 
 This architecture decouples on-chain immutability from off-chain accessibility, providing stakeholders with near-real-time visibility into asset lifecycles without compromising blockchain integrity.
 
+## Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant Contract as Smart Contract<br/>(Ethereum Sepolia)
+    participant CRE as Chainlink CRE<br/>(LogTrigger/HTTPTrigger)
+    participant Lambda as AWS Lambda<br/>Function
+    participant DynamoDB as AWS DynamoDB<br/>(AssetState Table)
+
+    Note over Contract,DynamoDB: Asset Registration Flow
+    Contract->>Contract: Emit AssetRegistered event
+    Contract-->>CRE: Event Log (LogTrigger)
+    CRE->>CRE: Parse event data
+    CRE->>CRE: Format HTTP payload
+    CRE->>Lambda: POST /function-url (HTTP Ability)
+    Lambda->>Lambda: Process payload
+    Lambda->>DynamoDB: PutItem (AssetId, Name, Issuer, Supply)
+    Lambda-->>DynamoDB: Auto-generate UID
+
+    Note over Contract,DynamoDB: Asset Verification Flow
+    Contract->>Contract: Emit AssetVerified event
+    Contract-->>CRE: Event Log (LogTrigger)
+    CRE->>CRE: Parse verification data
+    CRE->>Lambda: POST verification data
+    Lambda->>DynamoDB: UpdateItem (Add Verified: true)
+
+    Note over Contract,DynamoDB: UID Update Flow (Bidirectional)
+    CRE->>CRE: Receive HTTP Trigger
+    CRE->>CRE: Parse JSON payload {assetId, uid}
+    CRE->>Contract: updateAssetMetadata(assetId, uid)
+
+    Note over Contract,DynamoDB: Token Minting Flow
+    Contract->>Contract: Emit TokensMinted event
+    Contract-->>CRE: Event Log (LogTrigger)
+    CRE->>Lambda: POST mint event data
+    Lambda->>DynamoDB: UpdateItem (Add TokenMinted column)
+
+    Note over Contract,DynamoDB: Token Redemption Flow
+    Contract->>Contract: Emit TokensRedeemed event
+    Contract-->>CRE: Event Log (LogTrigger)
+    CRE->>Lambda: POST redeem event data
+    Lambda->>DynamoDB: UpdateItem (Add TokenRedeemed column)
+```
 ## Getting Started
 ### Prerequisites
 Before proceeding, ensure the following are set up:
