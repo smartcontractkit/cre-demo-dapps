@@ -5,267 +5,248 @@ import * as crypto from "crypto";
 import https from "https";
 import { URL } from "url";
 
-export const handler = async (event) => {
-    let params;
-  
-    // please define the region before deploy the function
-    // you can find the region on the top right. eg. "us-east-1"
-    const yourAwsRegion = ""
+/**
+ * Constants for HTTP status codes used throughout the handler.
+ */
+const STATUS_OK = 200;
+const STATUS_BAD_REQUEST = 400;
+const STATUS_NOT_FOUND = 404;
+const STATUS_SERVER_ERROR = 500;
 
-    if(!yourAwsRegion) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: "region is null, please define the region." })
-            };
-        }
+/**
+ * Name of the DynamoDB table to store asset states.
+ */
+const TABLE_NAME = "AssetState"; // Update the value if you use a table with different name
 
-    const client = new DynamoDBDocumentClient(new DynamoDBClient({ region: yourAwsRegion }));
-    const TABLE_NAME = "AssetState";
+/**
+ * Required fields for each action to validate incoming parameters.
+ */
+const REQUIRED_FIELDS = {
+  read: ["assetId"],
+  AssetRegistered: ["assetId", "issuer", "initialSupply", "assetName"],
+  AssetVerified: ["assetId", "isValid"],
+  TokensMinted: ["assetId", "amount"],
+  TokensRedeemed: ["assetId", "amount"],
+  sendNotification: ["assetId", "apiUrl"],
+};
 
-  // debug
-  console.log("event:", event);
-  
-  try {
-      params = JSON.parse(event.body);
-  } catch (parseError) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Invalid JSON in request body" })
-    };
+/**
+ * Helper function to build a standardized Lambda response object.
+ * @param {number} statusCode - The HTTP status code.
+ * @param {object} body - The response body object.
+ * @returns {object} Lambda response with statusCode and JSON-stringified body.
+ */
+const buildResponse = (statusCode, body) => ({
+  statusCode,
+  body: JSON.stringify(body),
+});
+
+/**
+ * Validates that all required fields for the given action are present in params.
+ * @param {string} action - The action being performed.
+ * @param {object} params - The parsed request parameters.
+ * @throws {Error} If validation fails.
+ */
+const validateParams = (action, params) => {
+  const required = REQUIRED_FIELDS[action];
+  if (!required || !required.every((field) => params[field] != null)) {
+    throw new Error("Missing required parameters");
   }
+};
 
-  // debug
-  console.log("params:", params);
+/**
+ * Retrieves an item from DynamoDB by assetId.
+ * @param {object} client - The DynamoDB document client.
+ * @param {string|number} assetId - The ID of the asset.
+ * @returns {object} The item from DynamoDB, or empty object if not found.
+ */
+const getItem = async (client, assetId) => {
+  const command = new GetCommand({
+    TableName: TABLE_NAME,
+    Key: { AssetId: assetId },
+  });
+  const { Item } = await client.send(command);
+  return Item || {};
+};
 
-  const { action, assetId, issuer, initialSupply, assetName, amount, isValid, apiUrl } = params;
-  const assetIdNum = Number(assetId);  // make sure assetId is number
+/**
+ * Puts an item into DynamoDB.
+ * @param {object} client - The DynamoDB document client.
+ * @param {object} item - The item to store.
+ */
+const putItem = async (client, item) => {
+  const command = new PutCommand({
+    TableName: TABLE_NAME,
+    Item: item,
+  });
+  await client.send(command);
+};
 
-  if (!action 
-      || (action === "read" && !assetId) 
-      || (action === "AssetRegistered" && (!assetId || !issuer || !initialSupply || !assetName))
-      || (action === "AssetVerified" && (!assetId || !isValid))
-      || (action === "TokensMinted" && (!assetId || !amount))
-      || (action === "TokensRedeemed" && (!assetId || !amount))
-      /* 
-       **NOTE**:
-        Please be noticed that the CRE http trigger is not supported in the simulation mode. 
-        In order to use this action, the CRE workflow needs to be deployed on mainnet.
-        Action "sendNotification" is not used in the demo, 
-        and the purpose of this action in lambda is to show how to send a POST request to CRE.
-      */
-      || (action === "sendNotification" && (!assetId || !apiUrl))
-    ) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Missing required parameters" })
+
+/**
+ * Handlers for each supported action. Each returns a promise resolving to the response data.
+ */
+const handlers = {
+  /**
+   * Reads the asset state from DynamoDB.
+   */
+  read: async (client, { assetId }) => ({ data: await getItem(client, assetId) }),
+
+  /**
+   * Registers a new asset in DynamoDB.
+   */
+  AssetRegistered: async (client, { assetId, issuer, initialSupply, assetName }) => {
+    const item = {
+      AssetId: assetId,
+      AssetName: assetName,
+      Issuer: issuer,
+      Supply: initialSupply,
+      Uid: crypto.randomUUID(),
     };
-  }
+    await putItem(client, item);
+    return { message: "Asset registered successfully" };
+  },
 
-  try {
-    if (action === "read") {
-      const getCommand = new GetCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          AssetId: assetId 
-        }
-      });
+  /**
+   * Verifies an asset by updating its Verified status.
+   */
+  AssetVerified: async (client, { assetId, isValid }) => {
+    const current = await getItem(client, assetId);
+    const updated = { ...current, Verified: isValid };
+    await putItem(client, updated);
+    return { message: "Asset verified successfully", isValid };
+  },
 
-      const result = await client.send(getCommand);
-      const item = result.Item || null;
+  /**
+   * Mints new tokens by incrementing the TokenMinted count.
+   */
+  TokensMinted: async (client, { assetId, amount }) => {
+    const current = await getItem(client, assetId);
+    const currentAmount = BigInt(current.TokenMinted || 0n);
+    const updated = {
+      ...current,
+      TokenMinted: (currentAmount + BigInt(amount)).toString(),
+    };
+    await putItem(client, updated);
+    return { message: "New Token minted successfully", amount };
+  },
 
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ data: item })
-      };
-    } else if (action === "AssetRegistered") {
-      
-      const putCommand = new PutCommand({
-        TableName: TABLE_NAME,
-        Item: {
-          AssetId: assetId, 
-          AssetName: assetName,
-          Issuer: issuer,
-          Supply: initialSupply,
-          Uid: crypto.randomUUID(),
-        }
-      });
+  /**
+   * Redeems tokens by incrementing the TokenRedeemed count.
+   */
+  TokensRedeemed: async (client, { assetId, amount }) => {
+    const current = await getItem(client, assetId);
+    const currentAmount = BigInt(current.TokenRedeemed || 0n);
+    const updated = {
+      ...current,
+      TokenRedeemed: (currentAmount + BigInt(amount)).toString(),
+    };
+    await putItem(client, updated);
+    return { message: "Token redeemed successfully", amount };
+  },
 
-      await client.send(putCommand);
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: "Asset registered successfully" })
-      };
-    } else if(action == "AssetVerified") {
-
-      const getCommand = new GetCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          AssetId: assetId
-        }
-      });
-
-      const getResult = await client.send(getCommand);
-      const currentItem = getResult.Item || {};
-      const updateItem = { ...currentItem, Verified: isValid } 
-
-      const putCommand = new PutCommand({
-        TableName: TABLE_NAME,
-        Item: updateItem
-      });
-
-      await client.send(putCommand);
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: "Asset verified successfully", isValid})
-      };
-    } else if(action == "TokensMinted"){
-      // get existing item
-      const getCommand = new GetCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          AssetId: assetId
-        }
-      });
-      const getResult = await client.send(getCommand);
-      const currentItem = getResult.Item || {};
-      const currentAmount = currentItem.TokenMinted || "0";
-
-      // update the value
-      const newAmount = BigInt(currentAmount) + BigInt(amount);
-      
-      // prepare new item for DB
-      const updateItem = { ...currentItem, TokenMinted: newAmount.toString() } 
-
-      // put the updated item to the record
-      const putCommand = new PutCommand({
-        TableName: TABLE_NAME,
-        Item: updateItem
-      });
-
-      await client.send(putCommand);
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: "New Token minted successfully", amount}) 
-      };
-
-    } else if(action == "TokensRedeemed") {
-      // get existing item
-      const getCommand = new GetCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          AssetId: assetId
-        }
-      });
-      const getResult = await client.send(getCommand);
-      const currentItem = getResult.Item || {};
-      const currentAmount = currentItem.TokenRedeemed || "0";
-
-      // update the value
-      const newAmount = BigInt(currentAmount) + BigInt(amount);
-      
-      // prepare new item for DB
-      const updateItem = { ...currentItem, TokenRedeemed: newAmount.toString() } 
-
-      // put the updated item to the record
-      const putCommand = new PutCommand({
-        TableName: TABLE_NAME,
-        Item: updateItem
-      });
-
-      await client.send(putCommand);
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: "Token redeemed successfully", amount}) 
-      };      
-    } else if (action =="sendNotification") {
-      /* 
-       **NOTE**:
-        This branch is used to send a POST request to CRE while the capability require that CRE workflow deployed on mainnet.
-        In the demo, the action will not be used, and the purpose of this branch is to show how to send a POST request to CRE.
-      */
-      const getCommand = new GetCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          AssetId: assetId
-        }
-      });
-      const getResult = await client.send(getCommand);
-      const item = getResult.Item;
-
-      if (!item?.Uid) {
-        return {
-          statusCode: 404,
-          body: JSON.stringify({ error: "Asset UID not found" })
-        };
-      }
-
-      const uid = item.Uid;
-      const postData = JSON.stringify({ 
-        assetId: assetIdNum, 
-        uid 
-      });
-
-      const parsedUrl = new URL(apiUrl);
-      const options = {
-        hostname: parsedUrl.hostname,
-        port: parsedUrl.port || 443,
-        path: parsedUrl.pathname + parsedUrl.search,
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Content-Length": Buffer.byteLength(postData),
-        },
-      };
-
-      const postRequest = () => {
-        return new Promise((resolve, reject) => {
-          const req = https.request(options, (res) => {
-            let data = "";
-            res.on("data", (chunk) => {
-              data += chunk;
-            });
-            res.on("end", () => {
-              resolve({ statusCode: res.statusCode, body: data });
-            });
-          });
-
-          req.on("error", (err) => {
-            reject(err);
-          });
-
-          req.write(postData);
-          req.end();
-        });
-      };
-
-      const response = await postRequest();
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return {
-          statusCode: 200,
-          body: JSON.stringify({ message: "POST request sent successfully", assetId: assetIdNum, uid, apiResponse: response.body })
-        };
-      } else {
-        return {
-          statusCode: response.statusCode,
-          body: JSON.stringify({ error: "POST request failed", assetId: assetIdNum, uid, apiResponse: response.body })
-        };
-      }
-    }else {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Invalid action. Use 'read' or 'write'." })
-      };
+  /**
+   * Sends a POST notification to the provided API URL using asset data.
+   * Note: 
+   * Requires CRE workflow deployed on mainnet for full functionality.
+   * In the demo, the action will not be used. 
+   * the purpose of the snippet codes is to show how to send a POST request to CRE.
+   */
+  sendNotification: async (client, { assetId, apiUrl }) => {
+    const item = await getItem(client, assetId);
+    if (!item?.Uid) {
+      throw new Error("Asset UID not found");
     }
-  } catch (error) {
-    console.error("DynamoDB Error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Internal server error", details: error.message })
+
+    const postData = JSON.stringify({
+      assetId: Number(assetId),
+      uid: item.Uid,
+    });
+
+    const parsedUrl = new URL(apiUrl);
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || 443,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(postData),
+      },
     };
+
+    const response = await new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => resolve({ statusCode: res.statusCode, body: data }));
+      });
+      req.on("error", reject);
+      req.write(postData);
+      req.end();
+    });
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return {
+        message: "POST request sent successfully",
+        assetId: Number(assetId),
+        uid: item.Uid,
+        apiResponse: response.body,
+      };
+    } else {
+      throw new Error(`POST request failed: ${response.body}`);
+    }
+  },
+};
+
+/**
+ * Main Lambda handler function.
+ * Processes incoming events, validates, executes actions, and returns responses.
+ * @param {object} event - The Lambda event object.
+ * @returns {Promise<object>} The Lambda response.
+ */
+export const handler = async (event) => {
+  const yourAwsRegion = ""; // input your AWS region here 
+
+  if (!yourAwsRegion) {
+    return buildResponse(STATUS_BAD_REQUEST, { error: "region is null, please define the region." });
+  }
+  
+  // Initialize DynamoDB client with the specified region.
+  const client = new DynamoDBDocumentClient(new DynamoDBClient({ region: yourAwsRegion }));
+
+  // Parse request body as JSON.
+  let params;
+  try {
+    params = JSON.parse(event.body || "{}");
+  } catch {
+    return buildResponse(STATUS_BAD_REQUEST, { error: "Invalid JSON in request body" });
+  }
+
+  const { action } = params;
+
+  try {
+    // Validate action exists and is supported.
+    if (!action || !handlers[action]) {
+      return buildResponse(STATUS_BAD_REQUEST, { error: "Invalid action" });
+    }
+
+    // Validate required parameters for the action.
+    validateParams(action, params);
+    
+    // Execute the specific action handler.
+    const result = await handlers[action](client, params);
+    return buildResponse(STATUS_OK, result);
+  } catch (error) {
+    console.error("Error:", error);
+    
+    // Handle specific errors with appropriate status codes.
+    if (error.message === "Asset UID not found") {
+      return buildResponse(STATUS_NOT_FOUND, { error: error.message });
+    }
+    if (error.message.startsWith("POST request failed")) {
+      return buildResponse(STATUS_BAD_REQUEST, { error: error.message });
+    }
+    return buildResponse(STATUS_SERVER_ERROR, { error: "Internal server error", details: error.message });
   }
 };
