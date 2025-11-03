@@ -10,6 +10,3 @@ Here are the current demos:
 
 2. [CRE Stablecoin with PoR, ACE, and CCIP](./stablecoin-ace-ccip/)
 
-# License
-
-The license in the repo root applies to all branches.
