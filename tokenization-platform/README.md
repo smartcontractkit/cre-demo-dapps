@@ -160,6 +160,7 @@ Follow these steps to deploy and interact with the project:
     **NOTE 2: Update the value of TABLE_NAME if you DID NOT use `AssetState` for dynamoDB table in last step** 
 
     Once the `yourAwsRegion` and `TABLE_NAME` are assigned correctly, click blue button "deploy" on the left to deploy the lambda function.
+    ![alt text](<images/lambda-function-code-table-name.png>)
     ![alt text](<images/lambda-function-code.png>)
 
     When the code is deployed, go to "Configuration" -> "Function URL" and click the button "Create function URL" to create a URL for the function. Choose "NONE" for the the Function URL's Auth type and click the button "save" on the down right. The page is like below:
@@ -340,6 +341,26 @@ Follow these steps to deploy and interact with the project:
     ```
     value of the assetId 1 uid: bca71bc9-d08e-48ef-8ad1-acefe95505a9
     ```
+
+    Besides directly using the script, if you want to see the value more intuitively, you can also verify the contract and then read the variable values through Etherscan. Here are the operation steps. **NOTE: This is an alternative method to running the script. If you're not interested in this, you can skip this section and proceed directly to the next step**
+
+    In order to verify contract on Etherscan, please acquire an API key from EtherScan by following the [official docs](https://docs.etherscan.io/getting-an-api-key).
+
+    Head to the Remix page and click the button extension management on the down left to add the contract verification extension on the remix. 
+    <img src="images/extension-management-tool.png" width="300"/>
+
+    Once the extension added, go to "contract verification"->"settings", and add the etherscan API key to Remix. 
+    </br><img src="images/verification-settings.png" width="300"/>
+
+    Go to the tab "verify" and input network name, contract address and contract name as below.
+    </br><img src="images/etherscan-verify.png" alt="drawing" width="250"/>
+
+    Now the contract at the address can be verified and if you check the contract on etherscan. The link is `https://sepolia.etherscan.io/address/"YOUR CONTRACT ADDRESS"#code`. For example: `https://sepolia.etherscan.io/address/0xb61b94d957b1f2ffb136135e1a4f0cec130d6385#code` is a verified contract. 
+
+    Under the tab "contract", click "Read Contract" and find the function with name "uid", then input 1 as the index number and click button "Query" to fetch the uid value of asset with ID 1. 
+    ![alt text](<images/etherscan-read.png>)
+
+    The fetched value will be uid value in our JSON payload. This means the value in the payload that sent to the CRE is extracted correctly and written into the smart contract. 
 
 11. Mint Tokens
 
