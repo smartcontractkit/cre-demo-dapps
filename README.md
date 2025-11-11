@@ -6,7 +6,7 @@ We encourage you to check the README in each of the directories to understand th
 
 Here are the current demos:
 
-1. [Tokenization Platform](./tokenization-platform/)
+1. [Tokenization Asset Servicing](./tokenized-asset-servicing/)
 
 2. [CRE Stablecoin with PoR, ACE, and CCIP](./stablecoin-ace-ccip/)
 

@@ -92,7 +92,7 @@ Follow these steps to deploy and interact with the project:
 1. git clone the repo
     ```
     git clone https://github.com/smartcontractkit/cre-demo-dapps.git
-    cd cre-demo-dapps/tokenization-platform
+    cd cre-demo-dapps/tokenized-asset-servicing
     ```
 
 2. Update Configuration Files
