@@ -1,5 +1,14 @@
 # CRE-demo-dApps
 
+## Repository Status
+The codebase has since been **migrated and consolidated** into a new, fully DevRel-maintained **canonical repository**:
+👉 https://github.com/smartcontractkit/cre-templates
+
+To ensure a single source of truth and avoid fragmentation, **no new development happens in this repository**.
+Please refer to the canonical repository for the latest updates, fixes, and long-term maintenance.
+
+---
+
 This repo contains several demos that guide you on using the [Chainlink Runtime Environment (CRE)](https://chain.link/chainlink-runtime-environment).
 
 We encourage you to check the README in each of the directories to understand the demo.
